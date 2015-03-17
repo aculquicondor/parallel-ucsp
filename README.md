@@ -1,0 +1,2 @@
+# Algoritmos Paralelos
+## Aldo Culquicondor
