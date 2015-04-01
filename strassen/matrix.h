@@ -2,8 +2,6 @@
 #define STRASSEN_MATRIX_H_
 
 #include <vector>
-#include <iostream>
-using namespace std;
 
 template<typename T>
 class Matrix {
