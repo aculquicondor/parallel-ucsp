@@ -8,6 +8,7 @@ class Matrix {
 	size_t n_;
 	std::vector<T> data_;
  public:
+	typedef T Type;
   Matrix(size_t n) : n_(n), data_(n*n) {
 	}
   T operator()(size_t i, size_t j) const {
