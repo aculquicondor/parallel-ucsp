@@ -7,9 +7,10 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#include "matrix.h"
+
 template<typename M>
 struct Args {
-  typedef typename M::Type T;
   const M *a, *b;
   M *ans;
   size_t begin, end;
@@ -39,31 +40,24 @@ template<typename T>
 class ProxyMatrixParallel1;
 
 template<typename T>
-class MatrixParallel1 {
+class MatrixParallel1 : public Matrix<T> {
  protected:
-  size_t n_;
-  static const size_t REQ_PARALLEL = 256;
+  static const size_t REQ_PARALLEL = 64;
   static long NO_PROCESSORS;
 
  public:
-  typedef T Type;
-  MatrixParallel1(size_t n) : n_(n) {
+  MatrixParallel1(size_t n) : Matrix<T>(n) {
   }
-  virtual T operator()(size_t i, size_t j) const = 0;
-  virtual T& operator()(size_t i, size_t j) = 0;
-  size_t size() const {
-    return n_;
-  }
-  MatrixParallel1<T>* sum(MatrixParallel1<T> *p_first, MatrixParallel1<T> *p_second) {
-    MatrixParallel1<T> &ans = *this, &first = *p_first, &second = *p_second;
-    if (n_ > REQ_PARALLEL) {
+  Matrix<T>* sum(Matrix<T> *p_first, Matrix<T> *p_second) {
+    Matrix<T> &ans = *this, &first = *p_first, &second = *p_second;
+    if (this->n_ > REQ_PARALLEL) {
       pthread_t *threads = new pthread_t[NO_PROCESSORS];
-      Args<MatrixParallel1<T>> *args = new Args<MatrixParallel1<T>>[NO_PROCESSORS];
-      size_t step = n_ / NO_PROCESSORS, extra = n_ % NO_PROCESSORS;
+      Args<Matrix<T>> *args = new Args<Matrix<T>>[NO_PROCESSORS];
+      size_t step = this->n_ / NO_PROCESSORS, extra = this->n_ % NO_PROCESSORS;
       for (size_t pos = 0, i = 0; i < NO_PROCESSORS; i++) {
         size_t next = pos + step + (i < extra);
         args[i] = {&first, &second, &ans, pos, next};
-        pthread_create(&threads[i], NULL, parallel_function_sum<MatrixParallel1<T>>, &args[i]);
+        pthread_create(&threads[i], NULL, parallel_function_sum<Matrix<T>>, &args[i]);
         pos = next;
       }
       for (size_t i = 0; i < NO_PROCESSORS; ++i)
@@ -71,27 +65,27 @@ class MatrixParallel1 {
       delete[] threads;
       delete[] args;
     } else {
-      for (size_t i = 0; i < n_; ++i)
-        for (size_t j = 0; j < n_; ++j)
+      for (size_t i = 0; i < this->n_; ++i)
+        for (size_t j = 0; j < this->n_; ++j)
           ans(i, j) = first(i, j) + second(i, j);
     }
     return this;
   }
-  MatrixParallel1<T>* sum(MatrixParallel1<T> *p_other) {
-    MatrixParallel1<T> *p_ans = new RealMatrixParallel1<T>(n_);
+  Matrix<T>* sum(Matrix<T> *p_other) {
+    MatrixParallel1<T> *p_ans = new RealMatrixParallel1<T>(this->n_);
     p_ans->sum(this, p_other);
     return p_ans;
   }
-  MatrixParallel1<T>* dif(MatrixParallel1<T> *p_first, MatrixParallel1<T> *p_second) {
-    MatrixParallel1<T> &ans = *this, &first = *p_first, &second = *p_second;
-    if (n_ > REQ_PARALLEL) {
+  Matrix<T>* dif(Matrix<T> *p_first, Matrix<T> *p_second) {
+    Matrix<T> &ans = *this, &first = *p_first, &second = *p_second;
+    if (this->n_ > REQ_PARALLEL) {
       pthread_t *threads = new pthread_t[NO_PROCESSORS];
-      Args<MatrixParallel1<T>> *args = new Args<MatrixParallel1<T>>[NO_PROCESSORS];
-      size_t step = n_ / NO_PROCESSORS, extra = n_ % NO_PROCESSORS;
+      Args<Matrix<T>> *args = new Args<Matrix<T>>[NO_PROCESSORS];
+      size_t step = this->n_ / NO_PROCESSORS, extra = this->n_ % NO_PROCESSORS;
       for (size_t pos = 0, i = 0; i < NO_PROCESSORS; i++) {
         size_t next = pos + step + (i < extra);
         args[i] = {&first, &second, &ans, pos, next};
-        pthread_create(&threads[i], NULL, parallel_function_dif<MatrixParallel1<T>>, &args[i]);
+        pthread_create(&threads[i], NULL, parallel_function_dif<Matrix<T>>, &args[i]);
         pos = next;
       }
       for (size_t i = 0; i < NO_PROCESSORS; ++i)
@@ -99,45 +93,45 @@ class MatrixParallel1 {
       delete[] threads;
       delete[] args;
     } else {
-      for (size_t i = 0; i < n_; ++i)
-        for (size_t j = 0; j < n_; ++j)
+      for (size_t i = 0; i < this->n_; ++i)
+        for (size_t j = 0; j < this->n_; ++j)
           ans(i, j) = first(i, j) - second(i, j);
     }
     return this;
   }
-  MatrixParallel1<T>* dif(MatrixParallel1<T> *p_other) {
-    MatrixParallel1<T> *p_ans = new RealMatrixParallel1<T>(n_);
+  Matrix<T>* dif(Matrix<T> *p_other) {
+    MatrixParallel1<T> *p_ans = new RealMatrixParallel1<T>(this->n_);
     p_ans->dif(this, p_other);
     return p_ans;
   }
-  MatrixParallel1<T>* mul(MatrixParallel1<T> *p_first, MatrixParallel1<T> *p_second) {
-    MatrixParallel1<T> &ans = *this, &first = *p_first, &second = *p_second;
-    if (n_ == 1) {
+  Matrix<T>* mul(Matrix<T> *p_first, Matrix<T> *p_second) {
+    Matrix<T> &ans = *this, &first = *p_first, &second = *p_second;
+    if (this->n_ == 1) {
       ans(0, 0) = first(0, 0) * second(0, 0);
       return this;
     }
-    size_t n2 = n_ >> 1;
-    MatrixParallel1<T> *a11 = first.extract(n2, 0, 0),
-        *a12 = first.extract(n2, 0, n2),
-        *a21 = first.extract(n2, n2, 0),
-        *a22 = first.extract(n2, n2, n2),
-        *b11 = second.extract(n2, 0, 0),
-        *b12 = second.extract(n2, 0, n2),
-        *b21 = second.extract(n2, n2, 0),
-        *b22 = second.extract(n2, n2, n2),
-        *c11 = ans.extract(n2, 0, 0),
-        *c12 = ans.extract(n2, 0, n2),
-        *c21 = ans.extract(n2, n2, 0),
-        *c22 = ans.extract(n2, n2, n2);
-    MatrixParallel1<T> *tmp1 = new RealMatrixParallel1<T>(n2),
-        *tmp2 = new RealMatrixParallel1<T>(n2),
-        *m1 = new RealMatrixParallel1<T>(n2),
-        *m2 = new RealMatrixParallel1<T>(n2),
-        *m3 = new RealMatrixParallel1<T>(n2),
-        *m4 = new RealMatrixParallel1<T>(n2),
-        *m5 = new RealMatrixParallel1<T>(n2),
-        *m6 = new RealMatrixParallel1<T>(n2),
-        *m7 = new RealMatrixParallel1<T>(n2);
+    size_t n2 = this->n_ >> 1;
+    Matrix<T> *a11 = first.extract(n2, 0, 0),
+              *a12 = first.extract(n2, 0, n2),
+              *a21 = first.extract(n2, n2, 0),
+              *a22 = first.extract(n2, n2, n2),
+              *b11 = second.extract(n2, 0, 0),
+              *b12 = second.extract(n2, 0, n2),
+              *b21 = second.extract(n2, n2, 0),
+              *b22 = second.extract(n2, n2, n2),
+              *c11 = ans.extract(n2, 0, 0),
+              *c12 = ans.extract(n2, 0, n2),
+              *c21 = ans.extract(n2, n2, 0),
+              *c22 = ans.extract(n2, n2, n2);
+    Matrix<T> *tmp1 = new RealMatrixParallel1<T>(n2),
+              *tmp2 = new RealMatrixParallel1<T>(n2),
+              *m1 = new RealMatrixParallel1<T>(n2),
+              *m2 = new RealMatrixParallel1<T>(n2),
+              *m3 = new RealMatrixParallel1<T>(n2),
+              *m4 = new RealMatrixParallel1<T>(n2),
+              *m5 = new RealMatrixParallel1<T>(n2),
+              *m6 = new RealMatrixParallel1<T>(n2),
+              *m7 = new RealMatrixParallel1<T>(n2);
     tmp1->sum(a11, a22); tmp2->sum(b11, b22); m1->mul(tmp1, tmp2);
     tmp1->sum(a21, a22); m2->mul(tmp1, b11);
     tmp2->dif(b12, b22); m3->mul(a11, tmp2);
@@ -147,18 +141,19 @@ class MatrixParallel1 {
     tmp1->dif(a12, a22); tmp2->sum(b21, b22); m7->mul(tmp1, tmp2);
     delete a11, a12, a21, a22, b11, b12, b21, b22;
     tmp1->sum(m1, m4); tmp2->dif(m7, m5); c11->sum(tmp1, tmp2);
+    tmp1->dif(m1, m2); tmp2->sum(m3, m6); c22->sum(tmp1, tmp2);
+    delete tmp1, tmp2;
     c12->sum(m3, m5);
     c21->sum(m2, m4);
-    tmp1->dif(m1, m2); tmp2->sum(m3, m6); c22->sum(tmp1, tmp2);
-    delete c11, c12, c21, c22, tmp1, tmp2;
+    delete c11, c12, c21, c22;
+    delete m1, m2, m3, m4, m5, m6, m7;
     return this;
   }
-  MatrixParallel1<T>* mul(MatrixParallel1<T> *p_other) {
-    MatrixParallel1<T> *p_ans = new RealMatrixParallel1<T>(n_);
+  Matrix<T>* mul(Matrix<T> *p_other) {
+    MatrixParallel1<T> *p_ans = new RealMatrixParallel1<T>(this->n_);
     p_ans->mul(this, p_other);
     return p_ans;
   }
-  virtual MatrixParallel1<T>* extract(size_t n, size_t i0, size_t j0) = 0;
 };
 
 template<typename T>
@@ -176,7 +171,7 @@ class RealMatrixParallel1 : public MatrixParallel1<T> {
   T& operator()(size_t i, size_t j) {
     return data_[this->n_*i+j];
   }
-  MatrixParallel1<T>* extract(size_t n, size_t i0, size_t j0) {
+  Matrix<T>* extract(size_t n, size_t i0, size_t j0) {
     return new ProxyMatrixParallel1<T>(this, n, i0, j0);
   }
 };
@@ -195,7 +190,7 @@ class ProxyMatrixParallel1 : public MatrixParallel1<T> {
   T& operator()(size_t i, size_t j) {
     return (*original_)(i0_+i, j0_+j);
   }
-  MatrixParallel1<T>* extract(size_t n, size_t i0, size_t j0) {
+  Matrix<T>* extract(size_t n, size_t i0, size_t j0) {
     return new ProxyMatrixParallel1(original_, n, i0_+i0, j0_+j0);
   }
 };

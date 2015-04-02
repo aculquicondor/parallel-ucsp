@@ -2,7 +2,7 @@
 #include <chrono>
 #include <cassert>
 
-#include "matrix.h"
+#include "matrix_sequential.h"
 #include "matrix_parallel1.h"
 
 using namespace std;
@@ -26,29 +26,30 @@ int main() {
   for (size_t i = 0; i < sz; ++i)
     data1[i] = rand() % 100;
 
+  Matrix<int> *res;
   chrono::time_point<chrono::system_clock> start, end;
 
-  Matrix<int> sa(n), sb(n);
+  RealMatrixSequential<int> sa(n), sb(n);
   fill(sa, data0);
   fill(sb, data1);
   start = chrono::system_clock::now();
-  Matrix<int> sc = sa + sb;
+  res = sa.mul(&sb);
   end = chrono::system_clock::now();
-  cout << "Sequential " << sc.size() << ": " <<
+  cout << "Sequential " << res->size() << ": " <<
       chrono::duration_cast<chrono::microseconds>(end-start).count() << endl;
 
-  MatrixParallel1<int> p1a(n), p1b(n);
+  delete res;
+
+  RealMatrixParallel1<int> p1a(n), p1b(n);
   fill(p1a, data0);
   fill(p1b, data1);
   start = chrono::system_clock::now();
-  MatrixParallel1<int> p1c = p1a + p1b;
+  res = p1a.mul(&p1b);
   end = chrono::system_clock::now();
-  cout << "Parallel1 " << sc.size() << ": " <<
+  cout << "Parallel1 " << res->size() << ": " <<
       chrono::duration_cast<chrono::microseconds>(end-start).count() << endl;
 
-  for (size_t i = 0; i < sc.size(); ++i)
-    for (size_t j = 0; j < sc.size(); ++j)
-      assert(sc(i, j) == p1c(i, j));
+  delete res;
 
   return 0;
 }
