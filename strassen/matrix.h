@@ -7,6 +7,7 @@ template<typename T>
 class Matrix {
  protected:
   size_t n_;
+  static const size_t REQ_RECURSION = 64;
  public:
   typedef T Type;
   Matrix(size_t n) : n_(n) {

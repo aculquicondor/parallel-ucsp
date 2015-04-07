@@ -7,4 +7,7 @@ add_executable(sequential sequential.cc matrix_sequential.h matrix.h)
 
 add_executable(parallel1 parallel1.cc matrix_parallel1.h matrix.h)
 
-add_executable(comparator comparator.cc matrix_sequential.h matrix_parallel1.h matrix.h)
+add_executable(parallel2 parallel2.cc matrix_parallel2.h matrix.h)
+
+add_executable(comparator comparator.cc matrix_sequential.h matrix_parallel1.h
+               matrix.h matrix_parallel2.h)

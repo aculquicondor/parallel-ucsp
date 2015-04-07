@@ -2,7 +2,6 @@
 #define STRASSEN_MATRIX_PARALLEL_H_
 
 #include <vector>
-#include <functional>
 
 #include <pthread.h>
 #include <unistd.h>
@@ -109,6 +108,13 @@ class MatrixParallel1 : public Matrix<T> {
     if (this->n_ == 1) {
       ans(0, 0) = first(0, 0) * second(0, 0);
       return this;
+    } else if (this->n_ <= Matrix<T>::REQ_RECURSION) {
+      for (size_t i = 0; i < this->n_; ++i)
+        for (size_t j = 0; j < this->n_; ++j) {
+          for (size_t k = 0; k < this->n_; ++k)
+            ans(i, j) += first(i, k) * second(k, j);
+        }
+      return this;
     }
     size_t n2 = this->n_ >> 1;
     Matrix<T> *a11 = first.extract(n2, 0, 0),
@@ -158,7 +164,7 @@ class MatrixParallel1 : public Matrix<T> {
 };
 
 template<typename T>
-long MatrixParallel1<T>::NO_PROCESSORS = 4; //sysconf(_SC_NPROCESSORS_CONF);
+long MatrixParallel1<T>::NO_PROCESSORS = sysconf(_SC_NPROCESSORS_CONF);
 
 template<typename T>
 class RealMatrixParallel1 : public MatrixParallel1<T> {
