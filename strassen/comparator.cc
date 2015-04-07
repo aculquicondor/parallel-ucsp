@@ -36,7 +36,7 @@ int main() {
   res = sa.mul(&sb);
   end = chrono::system_clock::now();
   cout << "Sequential " << res->size() << ": " <<
-      chrono::duration_cast<chrono::microseconds>(end-start).count() << endl;
+      chrono::duration_cast<chrono::milliseconds>(end-start).count() << endl;
 
   delete res;
 
@@ -47,7 +47,7 @@ int main() {
   res = p1a.mul(&p1b);
   end = chrono::system_clock::now();
   cout << "Parallel1 " << res->size() << ": " <<
-      chrono::duration_cast<chrono::microseconds>(end-start).count() << endl;
+      chrono::duration_cast<chrono::milliseconds>(end-start).count() << endl;
 
   delete res;
 
@@ -58,7 +58,7 @@ int main() {
   res = p2a.mul(&p2b);
   end = chrono::system_clock::now();
   cout << "Parallel2 " << res->size() << ": " <<
-  chrono::duration_cast<chrono::microseconds>(end-start).count() << endl;
+  chrono::duration_cast<chrono::milliseconds>(end-start).count() << endl;
 
   delete res;
   return 0;
