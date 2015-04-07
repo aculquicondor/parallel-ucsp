@@ -41,7 +41,7 @@ class ProxyMatrixParallel1;
 template<typename T>
 class MatrixParallel1 : public Matrix<T> {
  protected:
-  static const size_t REQ_PARALLEL = 64;
+  static const size_t REQ_PARALLEL = 128;
   static long NO_PROCESSORS;
 
  public:
