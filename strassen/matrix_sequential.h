@@ -75,14 +75,15 @@ class MatrixSequential : public Matrix<T> {
     tmp1->sum(a11, a12); m5->mul(tmp1, b22);
     tmp1->dif(a21, a11); tmp2->sum(b11, b12); m6->mul(tmp1, tmp2);
     tmp1->dif(a12, a22); tmp2->sum(b21, b22); m7->mul(tmp1, tmp2);
-    delete a11, a12, a21, a22, b11, b12, b21, b22;
+    delete a11; delete a12; delete a21; delete a22;
+    delete b11; delete b12; delete b21; delete b22;
     tmp1->sum(m1, m4); tmp2->dif(m7, m5); c11->sum(tmp1, tmp2);
     tmp1->dif(m1, m2); tmp2->sum(m3, m6); c22->sum(tmp1, tmp2);
-    delete tmp1, tmp2;
     c12->sum(m3, m5);
     c21->sum(m2, m4);
-    delete c11, c12, c21, c22;
-    delete m1, m2, m3, m4, m5, m6, m7;
+    delete tmp1; delete tmp2;
+    delete m1; delete m2; delete m3; delete m4; delete m5; delete m6; delete m7;
+    delete c11; delete c12; delete c21; delete c22;
     return this;
   }
   Matrix<T>* mul(Matrix<T> *p_other) {
@@ -114,8 +115,9 @@ class ProxyMatrixSequential : public MatrixSequential<T> {
   MatrixSequential<T> *original_;
   size_t i0_, j0_;
  public:
-  ProxyMatrixSequential(MatrixSequential<T> *original, size_t n, size_t i0, size_t j0) :
-  MatrixSequential<T>(n), original_(original), i0_(i0), j0_(j0) {
+  ProxyMatrixSequential(MatrixSequential<T> *original, size_t n, size_t i0,
+                        size_t j0) :
+      MatrixSequential<T>(n), original_(original), i0_(i0), j0_(j0) {
   }
   T operator()(size_t i, size_t j) const {
     return (*original_)(i0_+i, j0_+j);

@@ -1,6 +1,5 @@
 #include <iostream>
 #include <chrono>
-#include <cassert>
 
 #include "matrix_sequential.h"
 #include "matrix_parallel1.h"
