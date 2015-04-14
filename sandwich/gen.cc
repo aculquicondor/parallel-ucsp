@@ -1,12 +1,10 @@
-#include <fstream>
 #include <cstdio>
-#include <sstream>
 #include <cstdlib>
 #include <ctime>
 
 using namespace std;
 
-const size_t BF_SIZE = 262144;
+const size_t BF_SIZE = 1048576;
 const int MAX_VAL = 100000000;
 const int RANGE_SIZE = 2 * MAX_VAL + 1;
 
@@ -19,19 +17,18 @@ int main(int argc, char *argv[]) {
     exit(1);
   srand(time(NULL));
   size_t size;
-  stringstream input(argv[1]);
-  input >> size;
-  ofstream gen_file("sandwich.bin", ios::binary);
-  gen_file.write(reinterpret_cast<const char *>(&size), sizeof(size_t));
+  size = atol(argv[1]);
+  FILE *gen_file = fopen("sandwich.bin", "w+");
+  fwrite(reinterpret_cast<void *>(&size), sizeof(size_t), 1, gen_file);
   int buffer[BF_SIZE];
   size_t i, j;
   for (i = 0; i < size; i += j) {
     for (j = 0; j < BF_SIZE and i + j < size; ++j) {
       buffer[j] = get_val();
     }
-    gen_file.write(reinterpret_cast<const char *>(&buffer), j * sizeof(int));
+    fwrite(reinterpret_cast<void *>(buffer), sizeof(int), j, gen_file);
   }
   printf("%lu bytes written\n", i * sizeof(int) + sizeof(size_t));
-  gen_file.close();
+  fclose(gen_file);
   return 0;
 }
