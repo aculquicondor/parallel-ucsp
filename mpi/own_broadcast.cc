@@ -1,7 +1,11 @@
 #include <mpi.h>
-#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
+
+const size_t SIZE = 2000000;
 
 int My_Bcast(void *buffer, int count, MPI_Datatype datatype,
     int root, MPI_Comm comm) {
@@ -21,17 +25,20 @@ int My_Bcast(void *buffer, int count, MPI_Datatype datatype,
 }
 
 int main(int argc, char *argv[]) {
-  int rank, size, data;
+  int rank, size;
+  int data[SIZE];
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
+  srand(time(NULL));
 
   if (rank == 0) {
-    data = 20;
+    for (size_t i = 0; i < SIZE; ++i)
+      data[i] = random();
   }
-  My_Bcast(&data, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  My_Bcast(&data, SIZE, MPI_INT, 0, MPI_COMM_WORLD);
 
-  cout << data << " from " << rank << endl;
+  printf("First value '%d' in %d\n", data[0], rank);
 
   MPI_Finalize();
   return 0;
