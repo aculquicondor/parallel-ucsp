@@ -97,7 +97,7 @@ Result solve_elements(const vector<int> &data, size_t start) {
   return r;
 }
 
-const size_t MAX_BF_SIZE = 8192;
+const size_t MAX_BF_SIZE = 1 << 15;
 
 int main(int argc, char *argv[]) {
   int world_rank, world_size;
