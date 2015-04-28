@@ -17,6 +17,8 @@ void initialize(int w_rank, int w_size, size_t size[],
   data[0] = new byte[(local_height + 2) * size[1]];
   for (size_t i = 1; i < local_height + 2; ++i)
     data[i] = data[i-1] + size[1];
+  memset(data[0], 0, size[1]);
+  memset(data[local_height+1], 0, size[1]);
   srand(time(NULL) * w_rank);
   for (size_t i = 1; i <= local_height; ++i)
     for (size_t j = 0; j < size[1]; ++j)
@@ -33,26 +35,49 @@ void send_recv(int w_rank, int w_size, size_t local_height, size_t size[],
   int partner;
   if (w_rank & 1) {
     partner = w_rank ? w_rank - 1 : MPI_PROC_NULL;
-    MPI_Sendrecv(data[0], size[1], MPI_BYTE, partner, 0,
-                 data[local_height+1], size[1], MPI_BYTE, partner, 0,
+    MPI_Sendrecv(data[1], size[1], MPI_BYTE, partner, 1,
+                 data[0], size[1], MPI_BYTE, partner, 1,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     partner = w_rank < w_size - 1 ? w_rank + 1 : MPI_PROC_NULL;
-    MPI_Sendrecv(data[local_height+1], size[1], MPI_BYTE, partner, 0,
-                 data[0], size[1], MPI_BYTE, partner, 0,
+    MPI_Sendrecv(data[local_height], size[1], MPI_BYTE, partner, 1,
+                 data[local_height+1], size[1], MPI_BYTE, partner, 1,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   } else {
     partner = w_rank < w_size - 1 ? w_rank + 1 : MPI_PROC_NULL;
-    MPI_Sendrecv(data[local_height+1], size[1], MPI_BYTE, partner, 0,
-                 data[0], size[1], MPI_BYTE, partner, 0,
+    MPI_Sendrecv(data[local_height], size[1], MPI_BYTE, partner, 1,
+                 data[local_height+1], size[1], MPI_BYTE, partner, 1,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     partner = w_rank ? w_rank - 1 : MPI_PROC_NULL;
-    MPI_Sendrecv(data[0], size[1], MPI_BYTE, partner, 0,
-                 data[local_height+1], size[1], MPI_BYTE, partner, 0,
+    MPI_Sendrecv(data[1], size[1], MPI_BYTE, partner, 1,
+                 data[0], size[1], MPI_BYTE, partner, 1,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
 }
 
+int dx[] = {-1, -1, -1, 0, 0, 1, 1, 1},
+    dy[] = {-1, 0, 1, -1, 1, -1, 0, 1};
+
 void recalculate(size_t size[], size_t local_height, byte **data) {
+  byte **tmp = new byte*[local_height];
+  tmp[0] = new byte[local_height * size[1]];
+  for (int i = 1; i < local_height; ++i)
+    tmp[i] = tmp[i-1] + size[1];
+  int q, ii, jj;
+  for (int i = 0; i < local_height; ++i)
+    for (int j = 0; j < size[1]; ++j) {
+      q = 0;
+      for (int k = 0; k < 8; ++k) {
+        ii = i + dx[k];
+        jj = j + dy[k];
+        if (jj >= 0 and jj < size[1])
+          q += data[ii+1][jj] != 0;
+      }
+      tmp[i][j] = (data[i+1][j] and (q == 2 or q == 3)) or
+                      (not data[i+1][j] and (q == 3)) ? 255 : 0;
+    }
+  memcpy(data[1], tmp[0], local_height * size[1]);
+  delete tmp[0];
+  delete tmp;
 }
 
 int main(int argc, char *argv[]) {
@@ -95,7 +120,7 @@ int main(int argc, char *argv[]) {
         fill_img(*image, msg, local_height, status.MPI_SOURCE);
       }
       image->display(*main_disp);
-      sleep(5);
+      usleep(200000);
     } else {
       MPI_Send(data[1], local_height * size[1], MPI_BYTE, 0, 0,
                MPI_COMM_WORLD);
@@ -107,7 +132,12 @@ int main(int argc, char *argv[]) {
     MPI_Bcast(&window_closed, 1, MPI_BYTE, 0, MPI_COMM_WORLD);
   } while (!window_closed);
 
+  delete data[0];
+  delete data;
+
   if (w_rank == 0) {
+    delete msg[0];
+    delete msg;
     delete image;
     delete main_disp;
   }
