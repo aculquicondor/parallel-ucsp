@@ -17,7 +17,7 @@ void initialize(int w_rank, int w_size, size_t size[],
   data[0] = new byte[(local_height + 2) * size[1]];
   for (size_t i = 1; i < local_height + 2; ++i)
     data[i] = data[i-1] + size[1];
-  srand(time(NULL));
+  srand(time(NULL) * w_rank);
   for (size_t i = 1; i <= local_height; ++i)
     for (size_t j = 0; j < size[1]; ++j)
       data[i][j] = (rand() & 1) ? 0 : 255;
@@ -28,8 +28,31 @@ void fill_img(CImage &image, byte **data, size_t local_height, int w_rank) {
   memcpy(image.data() + first_pos, data[0], local_height * image.width());
 }
 
-void recalculate(size_t size[], byte **data) {
+void send_recv(int w_rank, int w_size, size_t local_height, size_t size[],
+               byte **data) {
+  int partner;
+  if (w_rank & 1) {
+    partner = w_rank ? w_rank - 1 : MPI_PROC_NULL;
+    MPI_Sendrecv(data[0], size[1], MPI_BYTE, partner, 0,
+                 data[local_height+1], size[1], MPI_BYTE, partner, 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    partner = w_rank < w_size - 1 ? w_rank + 1 : MPI_PROC_NULL;
+    MPI_Sendrecv(data[local_height+1], size[1], MPI_BYTE, partner, 0,
+                 data[0], size[1], MPI_BYTE, partner, 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  } else {
+    partner = w_rank < w_size - 1 ? w_rank + 1 : MPI_PROC_NULL;
+    MPI_Sendrecv(data[local_height+1], size[1], MPI_BYTE, partner, 0,
+                 data[0], size[1], MPI_BYTE, partner, 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    partner = w_rank ? w_rank - 1 : MPI_PROC_NULL;
+    MPI_Sendrecv(data[0], size[1], MPI_BYTE, partner, 0,
+                 data[local_height+1], size[1], MPI_BYTE, partner, 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  }
+}
 
+void recalculate(size_t size[], size_t local_height, byte **data) {
 }
 
 int main(int argc, char *argv[]) {
@@ -48,9 +71,8 @@ int main(int argc, char *argv[]) {
   if (w_rank == 0) {
     scanf("%zd %zd", &size[0], &size[1]);
     size[0] -= size[0] % w_size;
-    image = new CImage(size[0], size[1], 1, 1);
-    main_disp = new CImgDisplay(*image, "Game of Life");
-    main_disp->resize(size[1] * 2, size[0] * 2);
+    image = new CImage(size[1], size[0], 1, 1);
+    main_disp = new CImgDisplay(size[1] * 2, size[0] * 2, "Game of Life");
     main_disp->show();
   }
 
@@ -78,8 +100,8 @@ int main(int argc, char *argv[]) {
       MPI_Send(data[1], local_height * size[1], MPI_BYTE, 0, 0,
                MPI_COMM_WORLD);
     }
-
-    recalculate(size, data);
+    send_recv(w_rank, w_size, local_height, size, data);
+    recalculate(size, local_height, data);
     if (w_rank == 0)
       window_closed = main_disp->is_closed();
     MPI_Bcast(&window_closed, 1, MPI_BYTE, 0, MPI_COMM_WORLD);
