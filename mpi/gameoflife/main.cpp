@@ -24,10 +24,8 @@ void initialize(int w_rank, int w_size, size_t size[],
 }
 
 void fill_img(CImage &image, byte **data, size_t local_height, int w_rank) {
-  size_t first_row = w_rank * local_height;
-  for (int y = 0; y < local_height; ++y) {
-    cimg_forX(image, x) image(x, y + first_row) = data[y][x];
-  }
+  size_t first_pos = w_rank * local_height * image.width();
+  memcpy(image.data() + first_pos, data[0], local_height * image.width());
 }
 
 void recalculate(size_t size[], byte **data) {
