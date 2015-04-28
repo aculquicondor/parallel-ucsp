@@ -122,7 +122,6 @@ int main(int argc, char *argv[]) {
         fill_img(*image, msg, local_height, status.MPI_SOURCE);
       }
       image->display(*main_disp);
-      usleep(200000);
     } else {
       MPI_Send(data[1], local_height * size[1], MPI_BYTE, 0, 0,
                MPI_COMM_WORLD);
