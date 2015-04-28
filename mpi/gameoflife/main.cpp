@@ -94,10 +94,12 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(MPI_COMM_WORLD, &w_size);
 
   if (w_rank == 0) {
+    printf("Enter height and width (separated by an space): ");
+    fflush(stdout);
     scanf("%zd %zd", &size[0], &size[1]);
     size[0] -= size[0] % w_size;
     image = new CImage(size[1], size[0], 1, 1);
-    main_disp = new CImgDisplay(size[1] * 2, size[0] * 2, "Game of Life");
+    main_disp = new CImgDisplay(size[1] * 1, size[0] * 1, "Game of Life");
     main_disp->show();
   }
 
