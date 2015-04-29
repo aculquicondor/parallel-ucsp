@@ -76,8 +76,8 @@ void recalculate(size_t size[], size_t local_height, byte **data) {
                       (not data[i+1][j] and (q == 3)) ? 255 : 0;
     }
   memcpy(data[1], tmp[0], local_height * size[1]);
-  delete tmp[0];
-  delete tmp;
+  delete[] tmp[0];
+  delete[] tmp;
 }
 
 int main(int argc, char *argv[]) {
@@ -133,12 +133,12 @@ int main(int argc, char *argv[]) {
     MPI_Bcast(&window_closed, 1, MPI_BYTE, 0, MPI_COMM_WORLD);
   } while (!window_closed);
 
-  delete data[0];
-  delete data;
+  delete[] data[0];
+  delete[] data;
 
   if (w_rank == 0) {
-    delete msg[0];
-    delete msg;
+    delete[] msg[0];
+    delete[] msg;
     delete image;
     delete main_disp;
   }
