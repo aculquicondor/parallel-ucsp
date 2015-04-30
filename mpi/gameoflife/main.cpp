@@ -25,11 +25,6 @@ void initialize(int w_rank, int w_size, size_t size[],
       data[i][j] = (rand() & 1) ? 0 : 255;
 }
 
-void fill_img(CImage &image, byte **data, size_t local_height, int w_rank) {
-  size_t first_pos = w_rank * local_height * image.width();
-  memcpy(image.data() + first_pos, data[0], local_height * image.width());
-}
-
 void send_recv(int w_rank, int w_size, size_t local_height, size_t size[],
                byte **data) {
   int partner;
@@ -82,10 +77,10 @@ void recalculate(size_t size[], size_t local_height, byte **data) {
 
 int main(int argc, char *argv[]) {
   int w_rank, w_size;
-  CImage *image;
+  CImage *image = nullptr;
   CImgDisplay *main_disp;
   size_t size[2], local_height;
-  byte **data, **msg;
+  byte **data;
   bool window_closed;
   MPI_Status status;
 
@@ -106,25 +101,12 @@ int main(int argc, char *argv[]) {
   MPI_Bcast(size, 2, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
   initialize(w_rank, w_size, size, local_height, data);
 
-  if (w_rank == 0) {
-    msg = new byte*[local_height];
-    msg[0] = new byte[local_height * size[1]];
-    for (size_t i = 1; i < local_height; ++i)
-      msg[i] = msg[i-1] + size[1];
-  }
-
   do {
+    MPI_Gather(data[1], local_height * size[1], MPI_BYTE,
+        image ? image->data() : nullptr, local_height * size[1], MPI_BYTE, 0,
+        MPI_COMM_WORLD);
     if (w_rank == 0) {
-      fill_img(*image, &data[1], local_height, 0);
-      for (int i = 1; i < w_size; ++i) {
-        MPI_Recv(msg[0], local_height * size[1], MPI_BYTE, MPI_ANY_SOURCE, 0,
-                 MPI_COMM_WORLD, &status);
-        fill_img(*image, msg, local_height, status.MPI_SOURCE);
-      }
       image->display(*main_disp);
-    } else {
-      MPI_Send(data[1], local_height * size[1], MPI_BYTE, 0, 0,
-               MPI_COMM_WORLD);
     }
     send_recv(w_rank, w_size, local_height, size, data);
     recalculate(size, local_height, data);
@@ -137,8 +119,6 @@ int main(int argc, char *argv[]) {
   delete[] data;
 
   if (w_rank == 0) {
-    delete[] msg[0];
-    delete[] msg;
     delete image;
     delete main_disp;
   }
