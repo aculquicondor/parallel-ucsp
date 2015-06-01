@@ -11,16 +11,16 @@ int thread_count;
 
 void parallel_sort(vector<int> &a) {
   size_t phase, i, n = a.size();
-# pragma omp parallel num_threads(thread_count) \
-    default(none) shared(a, n) private(i, phase)
   for (phase = 0; phase < n; ++phase) {
     if (phase & 1) {
-#     pragma omp for
+#     pragma omp parallel for num_threads(thread_count) \
+        shared(a, n) private(i, phase)
       for (i = 1; i < n - 1; i += 2)
         if (a[i] > a[i+1])
           swap(a[i], a[i+1]);
     } else {
-#     pragma omp for
+#     pragma omp parallel for num_threads(thread_count) \
+        shared(a, n) private(i, phase)
       for (i = 1; i < n; i += 2)
         if (a[i-1] > a[i])
           swap(a[i-1], a[i]);
