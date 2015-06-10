@@ -67,9 +67,9 @@ int main() {
 
 
   long us = 1000000;
+  chrono::time_point<chrono::system_clock> start, end;
 
   for (int i = 0; i < 1000; ++i) {
-    chrono::time_point<chrono::system_clock> start, end;
     start = chrono::system_clock::now();
     c = a * b;
     end = chrono::system_clock::now();
