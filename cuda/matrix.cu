@@ -18,7 +18,7 @@ void matrix_product_serial(float *P, float *M, float *N, size_t width) {
 #pragma omp parallel for
   for (size_t i = 0; i < width; ++i)
     for (size_t j = 0; j < width; ++j) {
-      float acc;
+      float acc = 0;
       for (size_t k = 0; k < width; ++k)
         acc += M[i*width+k] * N[k*width+j];
       P[i*width+j] = acc;
@@ -78,6 +78,14 @@ int main(int argc, char *argv[]) {
   end = chrono::system_clock::now();
   ms = chrono::duration_cast<chrono::milliseconds>(end-start).count();
   printf("GPU: %d\n", ms);
+
+#ifndef NOIO
+  print(M, width);
+  puts("-------");
+  print(N, width);
+  puts("-------");
+  print(P, width);
+#endif
 
   start = chrono::system_clock::now();
   matrix_product_serial(P, M, N, width);
