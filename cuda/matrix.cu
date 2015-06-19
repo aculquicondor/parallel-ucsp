@@ -7,7 +7,8 @@ using namespace std;
 
 __global__ void matrix_product_kernel(float *P, float *M, float *N,
                                       size_t width) {
-  int i = threadIdx.x, j = threadIdx.y;
+  int i = blockIdx.x * 32 + threadIdx.x,
+      j = blockIdx.y * 32 + threadIdx.y;
   float acc = 0;
   for (int k = 0; k < width; ++k)
     acc += M[i*width+k] * N[k*width+j];
@@ -34,8 +35,7 @@ void matrix_product(float *P, float *M, float *N, size_t width) {
   cudaMemcpy(Nd, N, dsize, cudaMemcpyHostToDevice);
   cudaMalloc((void **)&Pd, dsize);
 
-  dim3 dim_block(width, width);
-  dim3 dim_grid(1, 1);
+  dim3 dim_block(32, 32), dim_grid(width / 32, width / 32);
   matrix_product_kernel<<<dim_grid, dim_block>>>(Pd, Md, Nd, width);
 
   cudaMemcpy(P, Pd, dsize, cudaMemcpyDeviceToHost);
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
   size_t width;
 
 #ifdef NOIO
-  width = 512;
+  width = 1024;
 #else
   scanf("%ld", &width);
 #endif
